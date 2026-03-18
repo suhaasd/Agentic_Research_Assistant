@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Research Assistant</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --surface2:  #222535;
+      --border:    #2e3147;
+      --accent:    #6c63ff;
+      --accent2:   #00c9a7;
+      --text:      #e2e4f0;
+      --muted:     #7b7f9e;
+      --danger:    #ff5f6d;
+      --warn:      #ffa726;
+      --pass:      #00c9a7;
+      --radius:    12px;
+      --shadow:    0 4px 24px rgba(0,0,0,.4);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    header .logo {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -.3px; }
+    header p  { font-size: .78rem; color: var(--muted); margin-top: 1px; }
+
+    header .badge {
+      margin-left: auto;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: .72rem;
+      color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    header .badge .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--pass);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50%      { opacity: .35; }
+    }
+
+    main {
+      flex: 1;
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 36px 24px 60px;
+    }
+
+    .query-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .query-card label {
+      display: block;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 10px;
+    }
+
+    .query-card textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: .95rem;
+      font-family: inherit;
+      padding: 12px 14px;
+      resize: vertical;
+      min-height: 80px;
+      transition: border-color .2s;
+      outline: none;
+    }
+
+    .query-card textarea:focus { border-color: var(--accent); }
+    .query-card textarea::placeholder { color: var(--muted); }
+
+    .query-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      border: none; border-radius: 8px;
+      padding: 9px 18px;
+      font-size: .88rem; font-weight: 600; cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #9b5de5);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-web {
+      background: linear-gradient(135deg, #0ea5e9, var(--accent2));
+      color: #fff;
+    }
+
+    .pipeline {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 28px 0 0;
+      font-size: .78rem;
+      color: var(--muted);
+    }
+
+    .step {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      transition: all .3s;
+    }
+
+    .step.active  { border-color: var(--accent); color: var(--accent); }
+    .step.done    { border-color: var(--pass);   color: var(--pass);   }
+    .step.error   { border-color: var(--danger); color: var(--danger); }
+
+    .step-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .step-sep { color: var(--border); }
+
+    .section {
+      margin-top: 28px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      animation: slideUp .3s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    .section-header .icon {
+      width: 28px; height: 28px;
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+
+    .icon-paper { background: rgba(108,99,255,.18); }
+    .icon-web   { background: rgba(14,165,233,.18); }
+    .icon-review{ background: rgba(0,201,167,.18);  }
+
+    .section-title { font-size: .95rem; font-weight: 700; }
+    .section-meta  { margin-left: auto; font-size: .78rem; color: var(--muted); }
+
+    .section-body { padding: 20px; }
+
+    .answer-text {
+      line-height: 1.75;
+      font-size: .92rem;
+      color: var(--text);
+      white-space: pre-wrap;
+    }
+
+    .confidence {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 14px;
+    }
+
+    .confidence-label { font-size: .76rem; color: var(--muted); white-space: nowrap; }
+
+    .bar-track {
+      flex: 1; height: 6px;
+      background: var(--surface2);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width .6s ease;
+    }
+
+    .confidence-val { font-size: .76rem; font-weight: 700; color: var(--accent2); }
+
+    .sources-toggle {
+      display: flex; align-items: center; gap: 6px;
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: .78rem;
+      margin-top: 14px;
+      padding: 0;
+      font-family: inherit;
+      transition: color .15s;
+    }
+    .sources-toggle:hover { color: var(--accent); }
+
+    .sources-list {
+      display: none;
+      margin-top: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .source-chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: .78rem;
+    }
+
+    .source-chip .source-name {
+      font-weight: 600;
+      color: var(--accent);
+      word-break: break-all;
+    }
+
+    .source-chip .source-meta {
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .source-chip .source-preview {
+      margin-top: 6px;
+      color: var(--text);
+      opacity: .7;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .enhance-area {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .enhance-area .hint {
+      font-size: .78rem;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    .review-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 600px) {
+      .review-grid { grid-template-columns: 1fr; }
+    }
+
+    .review-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .review-card-title {
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 12px;
+    }
+
+    .score-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .score-label { font-size: .78rem; color: var(--muted); width: 90px; flex-shrink: 0; }
+
+    .score-bar-track {
+      flex: 1; height: 5px;
+      background: var(--surface);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .score-bar-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width .6s ease;
+    }
+
+    .score-val { font-size: .78rem; font-weight: 700; width: 24px; text-align: right; }
+
+    .verdict-badge {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+
+    .verdict-PASS              { background: rgba(0,201,167,.15); color: var(--pass); }
+    .verdict-FAIL              { background: rgba(255,95,109,.15); color: var(--danger); }
+    .verdict-NEEDS-IMPROVEMENT { background: rgba(255,167,38,.15); color: var(--warn); }
+
+    .reviewer-notes {
+      margin-top: 10px;
+      font-size: .78rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .recommendation {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--pass);
+      background: rgba(0,201,167,.08);
+      font-size: .88rem;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+
+    .recommendation .rec-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-banner {
+      margin-top: 20px;
+      padding: 14px 18px;
+      background: rgba(255,95,109,.1);
+      border: 1px solid rgba(255,95,109,.4);
+      border-radius: var(--radius);
+      font-size: .88rem;
+      color: var(--danger);
+      display: flex; gap: 10px; align-items: center;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🔬</div>
+  <div>
+    <h1>Research Assistant</h1>
+    <p>PDF RAG · Web Search · Quality Review</p>
+  </div>
+  <div class="badge" id="status-badge">
+    <span class="dot"></span>
+    <span id="status-text">Connecting…</span>
+  </div>
+</header>
+
+<main>
+
+  <div class="query-card">
+    <label for="query-input">Your Research Question</label>
+    <textarea
+      id="query-input"
+      placeholder="e.g. What techniques does FlashFill use for program synthesis?"
+      rows="3"
+    ></textarea>
+    <div class="query-actions">
+      <button class="btn btn-secondary" id="clear-btn">Clear</button>
+      <button class="btn btn-primary" id="ask-btn">
+        <span id="ask-spinner" class="spinner hidden"></span>
+        Ask Papers
+      </button>
+    </div>
+  </div>
+
+  <div class="pipeline hidden" id="pipeline">
+    <div class="step" id="step-rag">
+      <span class="step-dot"></span> Papers
+    </div>
+    <span class="step-sep">›</span>
+    <div class="step" id="step-web">
+      <span class="step-dot"></span> Web
+    </div>
+    <span class="step-sep">›</span>
+    <div class="step" id="step-review">
+      <span class="step-dot"></span> Review
+    </div>
+  </div>
+
+  <div class="error-banner hidden" id="error-banner">
+    <span>⚠️</span>
+    <span id="error-text"></span>
+  </div>
+
+  <div class="section hidden" id="paper-section">
+    <div class="section-header">
+      <div class="icon icon-paper">📄</div>
+      <span class="section-title">Paper Answer</span>
+      <span class="section-meta" id="paper-confidence-badge"></span>
+    </div>
+    <div class="section-body">
+      <div class="answer-text" id="paper-answer"></div>
+
+      <div class="confidence">
+        <span class="confidence-label">Confidence</span>
+        <div class="bar-track">
+          <div class="bar-fill" id="conf-bar" style="width:0%"></div>
+        </div>
+        <span class="confidence-val" id="conf-val"></span>
+      </div>
+
+      <details style="margin-top:14px;">
+        <summary style="cursor:pointer; font-size:.78rem; color:var(--muted); user-select:none;">
+          Sources used
+        </summary>
+        <div class="sources-list" id="sources-list" style="margin-top:10px;"></div>
+      </details>
+
+      <div class="enhance-area">
+        <button class="btn btn-web" id="enhance-btn">
+          <span id="enhance-spinner" class="spinner hidden"></span>
+          🌐 Enhance with Web Search
+        </button>
+        <p class="hint">Search the internet for additional context and get a quality review</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section hidden" id="web-section">
+    <div class="section-header">
+      <div class="icon icon-web">🌐</div>
+      <span class="section-title">Web-Enhanced Answer</span>
+      <span class="section-meta">Paper + Web synthesis</span>
+    </div>
+    <div class="section-body">
+      <div class="answer-text" id="web-answer"></div>
+    </div>
+  </div>
+
+  <div class="section hidden" id="review-section">
+    <div class="section-header">
+      <div class="icon icon-review">✅</div>
+      <span class="section-title">Quality Review</span>
+      <span class="section-meta">LLM-as-judge</span>
+    </div>
+    <div class="section-body">
+      <div class="review-grid">
+        <div class="review-card" id="paper-review-card">
+          <div class="review-card-title">📄 Paper Answer</div>
+          <div id="paper-review-scores"></div>
+          <div id="paper-verdict"></div>
+          <div class="reviewer-notes" id="paper-notes"></div>
+        </div>
+        <div class="review-card" id="web-review-card">
+          <div class="review-card-title">🌐 Web Answer</div>
+          <div id="web-review-scores"></div>
+          <div id="web-verdict"></div>
+          <div class="reviewer-notes" id="web-notes"></div>
+        </div>
+      </div>
+
+      <div class="recommendation hidden" id="recommendation">
+        <span class="rec-icon">💡</span>
+        <span id="recommendation-text"></span>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const API = '';  
+
+  const queryInput    = document.getElementById('query-input');
+  const askBtn        = document.getElementById('ask-btn');
+  const askSpinner    = document.getElementById('ask-spinner');
+  const clearBtn      = document.getElementById('clear-btn');
+  const enhanceBtn    = document.getElementById('enhance-btn');
+  const enhanceSpinner= document.getElementById('enhance-spinner');
+  const statusBadge   = document.getElementById('status-badge');
+  const statusText    = document.getElementById('status-text');
+  const pipeline      = document.getElementById('pipeline');
+  const errorBanner   = document.getElementById('error-banner');
+  const errorText     = document.getElementById('error-text');
+
+  const stepRag    = document.getElementById('step-rag');
+  const stepWeb    = document.getElementById('step-web');
+  const stepReview = document.getElementById('step-review');
+
+  const paperSection = document.getElementById('paper-section');
+  const webSection   = document.getElementById('web-section');
+  const reviewSection= document.getElementById('review-section');
+
+  let currentQuery   = '';
+  let currentRagAnswer = '';
+
+  async function checkHealth() {
+    try {
+      const r = await fetch(`${API}/api/health`);
+      if (r.ok) {
+        const d = await r.json();
+        statusText.textContent = `${d.model} · ready`;
+        statusBadge.querySelector('.dot').style.background = 'var(--pass)';
+      } else throw new Error();
+    } catch {
+      statusText.textContent = 'API offline';
+      statusBadge.querySelector('.dot').style.background = 'var(--danger)';
+      statusBadge.querySelector('.dot').style.animation = 'none';
+    }
+  }
+
+  checkHealth();
+
+  function showError(msg) {
+    errorText.textContent = msg;
+    errorBanner.classList.remove('hidden');
+  }
+
+  function hideError() {
+    errorBanner.classList.add('hidden');
+  }
+
+  function setStep(el, state) {
+    el.className = 'step';
+    if (state) el.classList.add(state);
+  }
+
+  function scoreRow(label, value) {
+    const pct = (value / 10) * 100;
+    return `
+      <div class="score-row">
+        <span class="score-label">${label}</span>
+        <div class="score-bar-track">
+          <div class="score-bar-fill" style="width:${pct}%"></div>
+        </div>
+        <span class="score-val">${value}</span>
+      </div>`;
+  }
+
+  function verdictClass(v) {
+    return 'verdict-' + v.replace(/\s+/g, '-');
+  }
+
+  function renderReview(scoresEl, verdictEl, notesEl, rv) {
+    scoresEl.innerHTML =
+      scoreRow('Relevance',    rv.relevance) +
+      scoreRow('Completeness', rv.completeness) +
+      scoreRow('Clarity',      rv.clarity) +
+      scoreRow('Average',      rv.average_score);
+
+    verdictEl.innerHTML =
+      `<span class="verdict-badge ${verdictClass(rv.verdict)}">${rv.verdict}</span>`;
+
+    notesEl.textContent = rv.reviewer_notes;
+  }
+
+  askBtn.addEventListener('click', async () => {
+    const query = queryInput.value.trim();
+    if (!query) { queryInput.focus(); return; }
+
+    hideError();
+    currentQuery = query;
+    currentRagAnswer = '';
+
+    paperSection.classList.add('hidden');
+    webSection.classList.add('hidden');
+    reviewSection.classList.add('hidden');
+
+    askBtn.disabled = true;
+    askSpinner.classList.remove('hidden');
+    pipeline.classList.remove('hidden');
+    setStep(stepRag, 'active');
+    setStep(stepWeb, null);
+    setStep(stepReview, null);
+
+    try {
+      const res = await fetch(`${API}/api/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || res.statusText);
+      }
+
+      const data = await res.json();
+      currentRagAnswer = data.answer;
+
+      document.getElementById('paper-answer').textContent = data.answer;
+
+      const pct = Math.round(data.confidence * 100);
+      document.getElementById('conf-bar').style.width = `${pct}%`;
+      document.getElementById('conf-val').textContent  = `${(data.confidence * 10).toFixed(1)}/10`;
+      document.getElementById('paper-confidence-badge').textContent =
+        `Confidence ${(data.confidence * 10).toFixed(1)}/10`;
+
+      const sourcesList = document.getElementById('sources-list');
+      if (data.sources && data.sources.length) {
+        sourcesList.innerHTML = data.sources.map((s, i) => `
+          <div class="source-chip">
+            <div class="source-name">[${i+1}] ${s.source}</div>
+            <div class="source-meta">Page ${s.page} · Score ${s.score.toFixed(3)}</div>
+            <div class="source-preview">${s.preview}</div>
+          </div>`).join('');
+      } else {
+        sourcesList.innerHTML = '<p style="font-size:.78rem;color:var(--muted)">No sources found.</p>';
+      }
+
+      paperSection.classList.remove('hidden');
+      enhanceBtn.disabled = false;
+      setStep(stepRag, 'done');
+
+    } catch (e) {
+      showError(`Paper search failed: ${e.message}`);
+      setStep(stepRag, 'error');
+    } finally {
+      askBtn.disabled = false;
+      askSpinner.classList.add('hidden');
+    }
+  });
+
+  enhanceBtn.addEventListener('click', async () => {
+    if (!currentRagAnswer) return;
+
+    hideError();
+    enhanceBtn.disabled = true;
+    enhanceSpinner.classList.remove('hidden');
+    setStep(stepWeb, 'active');
+    webSection.classList.add('hidden');
+    reviewSection.classList.add('hidden');
+
+    try {
+      const res = await fetch(`${API}/api/enhance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: currentQuery, rag_answer: currentRagAnswer }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || res.statusText);
+      }
+
+      const data = await res.json();
+      setStep(stepWeb, 'done');
+
+      document.getElementById('web-answer').textContent = data.synthesized;
+      webSection.classList.remove('hidden');
+
+      setStep(stepReview, 'active');
+
+      if (data.paper_review) {
+        renderReview(
+          document.getElementById('paper-review-scores'),
+          document.getElementById('paper-verdict'),
+          document.getElementById('paper-notes'),
+          data.paper_review
+        );
+      }
+
+      if (data.web_review) {
+        renderReview(
+          document.getElementById('web-review-scores'),
+          document.getElementById('web-verdict'),
+          document.getElementById('web-notes'),
+          data.web_review
+        );
+        document.getElementById('web-review-card').classList.remove('hidden');
+      } else {
+        document.getElementById('web-review-card').classList.add('hidden');
+      }
+
+      if (data.recommendation) {
+        document.getElementById('recommendation-text').textContent = data.recommendation;
+        document.getElementById('recommendation').classList.remove('hidden');
+      }
+
+      reviewSection.classList.remove('hidden');
+      setStep(stepReview, 'done');
+
+    } catch (e) {
+      showError(`Web search failed: ${e.message}`);
+      setStep(stepWeb, 'error');
+      enhanceBtn.disabled = false;
+    } finally {
+      enhanceSpinner.classList.add('hidden');
+    }
+  });
+
+  clearBtn.addEventListener('click', () => {
+    queryInput.value = '';
+    currentQuery = '';
+    currentRagAnswer = '';
+    hideError();
+    pipeline.classList.add('hidden');
+    paperSection.classList.add('hidden');
+    webSection.classList.add('hidden');
+    reviewSection.classList.add('hidden');
+    setStep(stepRag, null);
+    setStep(stepWeb, null);
+    setStep(stepReview, null);
+    queryInput.focus();
+  });
+
+  queryInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      askBtn.click();
+    }
+  });
+</script>
+</body>
+</html>
