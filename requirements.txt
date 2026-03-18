@@ -11,3 +11,5 @@ python-dotenv
 langchain-groq
 typesense
 langchain-huggingface
+fastapi
+uvicorn[standard]
