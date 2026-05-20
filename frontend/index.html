@@ -148,10 +148,6 @@
       color: var(--text);
     }
 
-    .btn-web {
-      background: linear-gradient(135deg, #0ea5e9, var(--accent2));
-      color: #fff;
-    }
 
     .pipeline {
       display: flex;
@@ -297,16 +293,6 @@
       overflow: hidden;
     }
 
-    .enhance-area {
-      margin-top: 20px;
-      text-align: center;
-    }
-
-    .enhance-area .hint {
-      font-size: .78rem;
-      color: var(--muted);
-      margin-top: 8px;
-    }
 
     .review-grid {
       display: grid;
@@ -414,82 +400,6 @@
 
     .hidden { display: none !important; }
 
-    .ingest-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px 22px;
-      box-shadow: var(--shadow);
-      margin-bottom: 20px;
-    }
-
-    .ingest-card-header {
-      font-size: .78rem;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      margin-bottom: 14px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .ingest-row { margin-bottom: 12px; }
-    .ingest-row:last-child { margin-bottom: 0; }
-
-    .ingest-row label {
-      display: block;
-      font-size: .75rem;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-
-    .ingest-input-row { display: flex; gap: 8px; }
-
-    .ingest-input-row input {
-      flex: 1;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-size: .88rem;
-      font-family: inherit;
-      padding: 9px 12px;
-      outline: none;
-      transition: border-color .2s;
-    }
-
-    .ingest-input-row input:focus { border-color: var(--accent2); }
-    .ingest-input-row input::placeholder { color: var(--muted); }
-
-    .btn-ingest {
-      background: linear-gradient(135deg, var(--accent2), #00a88a);
-      color: #fff;
-      white-space: nowrap;
-    }
-
-    .ingest-divider { height: 1px; background: var(--border); margin: 12px 0; }
-
-    .ingest-feedback {
-      margin-top: 8px;
-      font-size: .78rem;
-      padding: 8px 12px;
-      border-radius: 8px;
-    }
-
-    .ingest-feedback.success {
-      background: rgba(0,201,167,.1);
-      border: 1px solid rgba(0,201,167,.3);
-      color: var(--pass);
-    }
-
-    .ingest-feedback.error {
-      background: rgba(255,95,109,.1);
-      border: 1px solid rgba(255,95,109,.3);
-      color: var(--danger);
-    }
-
   </style>
 </head>
 <body>
@@ -508,36 +418,6 @@
 
 <main>
 
-  <div class="ingest-card">
-    <div class="ingest-card-header">+ Add Papers to Knowledge Base</div>
-
-    <div class="ingest-row">
-      <label>From URL — arXiv, DOI, or direct PDF link</label>
-      <div class="ingest-input-row">
-        <input type="text" id="fetch-url-input" placeholder="https://arxiv.org/abs/1706.03762" />
-        <button class="btn btn-ingest" id="fetch-btn">
-          <span id="fetch-spinner" class="spinner hidden"></span>
-          Fetch Paper
-        </button>
-      </div>
-      <div class="ingest-feedback hidden" id="fetch-feedback"></div>
-    </div>
-
-    <div class="ingest-divider"></div>
-
-    <div class="ingest-row">
-      <label>From Google Drive — public folder ID</label>
-      <div class="ingest-input-row">
-        <input type="text" id="drive-folder-input" placeholder="Google Drive folder ID" />
-        <button class="btn btn-ingest" id="drive-btn">
-          <span id="drive-spinner" class="spinner hidden"></span>
-          Ingest Folder
-        </button>
-      </div>
-      <div class="ingest-feedback hidden" id="drive-feedback"></div>
-    </div>
-  </div>
-
   <div class="query-card">
     <label for="query-input">Your Research Question</label>
     <textarea
@@ -549,14 +429,26 @@
       <button class="btn btn-secondary" id="clear-btn">Clear</button>
       <button class="btn btn-primary" id="ask-btn">
         <span id="ask-spinner" class="spinner hidden"></span>
-        Ask Papers
+        Research
       </button>
     </div>
   </div>
 
   <div class="pipeline hidden" id="pipeline">
-    <div class="step" id="step-rag">
-      <span class="step-dot"></span> Papers
+    <div class="step" id="step-local">
+      <span class="step-dot"></span> Local
+    </div>
+    <span class="step-sep">›</span>
+    <div class="step" id="step-drive">
+      <span class="step-dot"></span> Drive
+    </div>
+    <span class="step-sep">›</span>
+    <div class="step" id="step-arxiv">
+      <span class="step-dot"></span> arXiv
+    </div>
+    <span class="step-sep">›</span>
+    <div class="step" id="step-paper">
+      <span class="step-dot"></span> Paper
     </div>
     <span class="step-sep">›</span>
     <div class="step" id="step-web">
@@ -597,13 +489,6 @@
         <div class="sources-list" id="sources-list" style="margin-top:10px;"></div>
       </details>
 
-      <div class="enhance-area">
-        <button class="btn btn-web" id="enhance-btn">
-          <span id="enhance-spinner" class="spinner hidden"></span>
-          🌐 Enhance with Web Search
-        </button>
-        <p class="hint">Search the internet for additional context and get a quality review</p>
-      </div>
     </div>
   </div>
 
@@ -652,99 +537,26 @@
 <script>
   const API = '';
 
-  const fetchUrlInput  = document.getElementById('fetch-url-input');
-  const fetchBtn       = document.getElementById('fetch-btn');
-  const fetchSpinner   = document.getElementById('fetch-spinner');
-  const fetchFeedback  = document.getElementById('fetch-feedback');
+  const queryInput  = document.getElementById('query-input');
+  const askBtn      = document.getElementById('ask-btn');
+  const askSpinner  = document.getElementById('ask-spinner');
+  const clearBtn    = document.getElementById('clear-btn');
+  const statusBadge = document.getElementById('status-badge');
+  const statusText  = document.getElementById('status-text');
+  const pipeline    = document.getElementById('pipeline');
+  const errorBanner = document.getElementById('error-banner');
+  const errorText   = document.getElementById('error-text');
 
-  const driveFolderInput = document.getElementById('drive-folder-input');
-  const driveBtn         = document.getElementById('drive-btn');
-  const driveSpinner     = document.getElementById('drive-spinner');
-  const driveFeedback    = document.getElementById('drive-feedback');
-
-  function showFeedback(el, type, msg) {
-    el.textContent = msg;
-    el.className = `ingest-feedback ${type}`;
-    el.classList.remove('hidden');
-  }
-
-  fetchBtn.addEventListener('click', async () => {
-    const url = fetchUrlInput.value.trim();
-    if (!url) { fetchUrlInput.focus(); return; }
-
-    fetchBtn.disabled = true;
-    fetchSpinner.classList.remove('hidden');
-    fetchFeedback.classList.add('hidden');
-
-    try {
-      const res = await fetch(`${API}/api/fetch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || res.statusText);
-      showFeedback(fetchFeedback, 'success', `Ingested "${data.filename}" — ${data.chunks} chunks added`);
-      fetchUrlInput.value = '';
-    } catch (e) {
-      showFeedback(fetchFeedback, 'error', `Failed: ${e.message}`);
-    } finally {
-      fetchBtn.disabled = false;
-      fetchSpinner.classList.add('hidden');
-    }
-  });
-
-  driveBtn.addEventListener('click', async () => {
-    const folder_id = driveFolderInput.value.trim();
-    if (!folder_id) { driveFolderInput.focus(); return; }
-
-    driveBtn.disabled = true;
-    driveSpinner.classList.remove('hidden');
-    driveFeedback.classList.add('hidden');
-
-    try {
-      const res = await fetch(`${API}/api/ingest`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folder_id }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || res.statusText);
-      showFeedback(driveFeedback, 'success',
-        `Ingested ${data.ingested} file${data.ingested !== 1 ? 's' : ''} — ${data.total_chunks} chunks added`);
-      driveFolderInput.value = '';
-    } catch (e) {
-      showFeedback(driveFeedback, 'error', `Failed: ${e.message}`);
-    } finally {
-      driveBtn.disabled = false;
-      driveSpinner.classList.add('hidden');
-    }
-  });
-
-
-
-  const queryInput    = document.getElementById('query-input');
-  const askBtn        = document.getElementById('ask-btn');
-  const askSpinner    = document.getElementById('ask-spinner');
-  const clearBtn      = document.getElementById('clear-btn');
-  const enhanceBtn    = document.getElementById('enhance-btn');
-  const enhanceSpinner= document.getElementById('enhance-spinner');
-  const statusBadge   = document.getElementById('status-badge');
-  const statusText    = document.getElementById('status-text');
-  const pipeline      = document.getElementById('pipeline');
-  const errorBanner   = document.getElementById('error-banner');
-  const errorText     = document.getElementById('error-text');
-
-  const stepRag    = document.getElementById('step-rag');
+  const stepLocal  = document.getElementById('step-local');
+  const stepDrive  = document.getElementById('step-drive');
+  const stepArxiv  = document.getElementById('step-arxiv');
+  const stepPaper  = document.getElementById('step-paper');
   const stepWeb    = document.getElementById('step-web');
   const stepReview = document.getElementById('step-review');
 
-  const paperSection = document.getElementById('paper-section');
-  const webSection   = document.getElementById('web-section');
-  const reviewSection= document.getElementById('review-section');
-
-  let currentQuery   = '';
-  let currentRagAnswer = '';
+  const paperSection  = document.getElementById('paper-section');
+  const webSection    = document.getElementById('web-section');
+  const reviewSection = document.getElementById('review-section');
 
   async function checkHealth() {
     try {
@@ -777,6 +589,18 @@
     if (state) el.classList.add(state);
   }
 
+  function applyPipelineSteps(steps) {
+    const map = {};
+    for (const s of steps) map[s.step] = s.status;
+
+    setStep(stepLocal,  map.local_search     ? 'done' : null);
+    setStep(stepDrive,  map.drive_ingestion === 'done'    ? 'done' : null);
+    setStep(stepArxiv,  map.arxiv_fetch     === 'done'    ? 'done' : null);
+    setStep(stepPaper,  map.paper_answer    === 'done'    ? 'done' : null);
+    setStep(stepWeb,    map.web_search      === 'done'    ? 'done' : null);
+    setStep(stepReview, map.quality_review  === 'done'    ? 'done' : null);
+  }
+
   function scoreRow(label, value) {
     const pct = (value / 10) * 100;
     return `
@@ -799,10 +623,8 @@
       scoreRow('Completeness', rv.completeness) +
       scoreRow('Clarity',      rv.clarity) +
       scoreRow('Average',      rv.average_score);
-
     verdictEl.innerHTML =
       `<span class="verdict-badge ${verdictClass(rv.verdict)}">${rv.verdict}</span>`;
-
     notesEl.textContent = rv.reviewer_notes;
   }
 
@@ -811,9 +633,6 @@
     if (!query) { queryInput.focus(); return; }
 
     hideError();
-    currentQuery = query;
-    currentRagAnswer = '';
-
     paperSection.classList.add('hidden');
     webSection.classList.add('hidden');
     reviewSection.classList.add('hidden');
@@ -821,12 +640,16 @@
     askBtn.disabled = true;
     askSpinner.classList.remove('hidden');
     pipeline.classList.remove('hidden');
-    setStep(stepRag, 'active');
-    setStep(stepWeb, null);
+
+    setStep(stepLocal,  'active');
+    setStep(stepDrive,  null);
+    setStep(stepArxiv,  null);
+    setStep(stepPaper,  null);
+    setStep(stepWeb,    null);
     setStep(stepReview, null);
 
     try {
-      const res = await fetch(`${API}/api/ask`, {
+      const res = await fetch(`${API}/api/research`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query }),
@@ -838,13 +661,13 @@
       }
 
       const data = await res.json();
-      currentRagAnswer = data.answer;
 
-      document.getElementById('paper-answer').textContent = data.answer;
+      if (data.pipeline_steps) applyPipelineSteps(data.pipeline_steps);
 
+      document.getElementById('paper-answer').textContent = data.paper_answer;
       const pct = Math.round(data.confidence * 100);
       document.getElementById('conf-bar').style.width = `${pct}%`;
-      document.getElementById('conf-val').textContent  = `${(data.confidence * 10).toFixed(1)}/10`;
+      document.getElementById('conf-val').textContent = `${(data.confidence * 10).toFixed(1)}/10`;
       document.getElementById('paper-confidence-badge').textContent =
         `Confidence ${(data.confidence * 10).toFixed(1)}/10`;
 
@@ -859,49 +682,12 @@
       } else {
         sourcesList.innerHTML = '<p style="font-size:.78rem;color:var(--muted)">No sources found.</p>';
       }
-
       paperSection.classList.remove('hidden');
-      enhanceBtn.disabled = false;
-      setStep(stepRag, 'done');
 
-    } catch (e) {
-      showError(`Paper search failed: ${e.message}`);
-      setStep(stepRag, 'error');
-    } finally {
-      askBtn.disabled = false;
-      askSpinner.classList.add('hidden');
-    }
-  });
-
-  enhanceBtn.addEventListener('click', async () => {
-    if (!currentRagAnswer) return;
-
-    hideError();
-    enhanceBtn.disabled = true;
-    enhanceSpinner.classList.remove('hidden');
-    setStep(stepWeb, 'active');
-    webSection.classList.add('hidden');
-    reviewSection.classList.add('hidden');
-
-    try {
-      const res = await fetch(`${API}/api/enhance`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: currentQuery, rag_answer: currentRagAnswer }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || res.statusText);
+      if (data.web_answer) {
+        document.getElementById('web-answer').textContent = data.web_answer;
+        webSection.classList.remove('hidden');
       }
-
-      const data = await res.json();
-      setStep(stepWeb, 'done');
-
-      document.getElementById('web-answer').textContent = data.synthesized;
-      webSection.classList.remove('hidden');
-
-      setStep(stepReview, 'active');
 
       if (data.paper_review) {
         renderReview(
@@ -930,36 +716,29 @@
       }
 
       reviewSection.classList.remove('hidden');
-      setStep(stepReview, 'done');
 
     } catch (e) {
-      showError(`Web search failed: ${e.message}`);
-      setStep(stepWeb, 'error');
-      enhanceBtn.disabled = false;
+      showError(`Research failed: ${e.message}`);
+      setStep(stepLocal, 'error');
     } finally {
-      enhanceSpinner.classList.add('hidden');
+      askBtn.disabled = false;
+      askSpinner.classList.add('hidden');
     }
   });
 
   clearBtn.addEventListener('click', () => {
     queryInput.value = '';
-    currentQuery = '';
-    currentRagAnswer = '';
     hideError();
     pipeline.classList.add('hidden');
     paperSection.classList.add('hidden');
     webSection.classList.add('hidden');
     reviewSection.classList.add('hidden');
-    setStep(stepRag, null);
-    setStep(stepWeb, null);
-    setStep(stepReview, null);
+    [stepLocal, stepDrive, stepArxiv, stepPaper, stepWeb, stepReview].forEach(s => setStep(s, null));
     queryInput.focus();
   });
 
   queryInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      askBtn.click();
-    }
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) askBtn.click();
   });
 </script>
 </body>

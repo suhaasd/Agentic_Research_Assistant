@@ -12,7 +12,7 @@ from workflow_quality_reviewer import review_both_answers, review_answer_quality
 
 load_dotenv(override=True)
 
-GROQ_MODEL         = "llama-3.1-8b-instant"
+GROQ_MODEL         = "llama-3.3-70b-versatile"
 EMBEDDING_MODEL    = "all-MiniLM-L6-v2"
 VECTOR_STORE_PATH  = "../data/vector_store"
 COLLECTION_NAME    = "pdf_documents"
@@ -88,10 +88,13 @@ def rag_with_ollama(
     confidence = max(doc["similarity_score"] for doc in results)
 
     prompt = (
-        "You are a research assistant. Use ONLY the following context extracted "
-        "from research papers to answer the question. Do not add information from "
-        "outside this context.\n\n"
-        f"Context:\n{context}\n\n"
+        "You are a research assistant. Use the following context from research papers "
+        "as your primary source. If the context covers the question well, base your "
+        "answer on it and cite which papers support each point. If the context only "
+        "partially covers the question, supplement the gaps with your general knowledge "
+        "and clearly distinguish what comes from the papers versus general knowledge. "
+        "Give a thorough, well-structured answer.\n\n"
+        f"Context from papers:\n{context}\n\n"
         f"Question: {query}\n\n"
         "Answer:"
     )
