@@ -1,31 +1,40 @@
-from langchain_community.tools import DuckDuckGoSearchRun
-from langchain_ollama import ChatOllama
+import os
+from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_groq import ChatGroq
 from typing import Optional
 
-def get_ollama_llm(model: str = "llama3.1", temperature: float = 0.2) -> ChatOllama:
-    """Return a local Ollama chat model instance."""
-    return ChatOllama(model=model, temperature=temperature)
+
+def get_groq_llm(model: str = "llama-3.1-8b-instant", temperature: float = 0.2) -> ChatGroq:
+    return ChatGroq(model=model, temperature=temperature)
+
 
 def search_and_synthesize(
     query: str,
     rag_answer: str,
-    llm: ChatOllama,
+    llm: ChatGroq,
     num_results: int = 5,
 ) -> dict:
     """
-    Search the web for `query`, then ask the LLM to synthesize the
-    web results alongside the original RAG answer into a richer response.
+    Search the web via Tavily for `query`, then ask the LLM to synthesize the
+    results alongside the original RAG answer into a richer response.
 
     Returns a dict with keys:
-        web_results   – raw DuckDuckGo snippet string
+        web_results   – formatted Tavily snippet string
         synthesized   – LLM-synthesized combined answer
         query         – the search query used
     """
     print(f"\n[WebSearch] Searching the web for: '{query}' ...")
-    search_tool = DuckDuckGoSearchRun()
+    search_tool = TavilySearchResults(max_results=num_results)
 
     try:
-        web_results = search_tool.run(query)
+        results = search_tool.invoke(query)
+        if isinstance(results, list):
+            web_results = "\n\n".join(
+                f"Source: {r.get('url', 'unknown')}\n{r.get('content', '')}"
+                for r in results
+            )
+        else:
+            web_results = str(results)
     except Exception as e:
         print(f"[WebSearch] Search failed: {e}")
         return {
@@ -34,7 +43,7 @@ def search_and_synthesize(
             "query": query,
         }
 
-    print("[WebSearch] Results retrieved. Synthesizing with Ollama ...")
+    print("[WebSearch] Results retrieved. Synthesizing with Groq ...")
 
     synthesis_prompt = f"""You are a research assistant helping a student understand a topic more deeply.
 
@@ -67,19 +76,14 @@ Synthesized Answer:"""
         "query": query,
     }
 
+
 def prompt_user_for_web_search(rag_answer: str) -> bool:
-    """
-    Show the RAG answer to the user and ask whether they want web search.
-    Returns True if the user wants web search, False otherwise.
-    """
     print("\n" + "=" * 70)
     print("ANSWER FROM YOUR PAPER:")
     print("=" * 70)
     print(rag_answer)
     print("=" * 70)
-    print(
-        "\nthis is the answer for your question directly from the paper."
-    )
+    print("\nthis is the answer for your question directly from the paper.")
     print("Would you like to look up the internet for more details?")
 
     while True:
@@ -91,10 +95,11 @@ def prompt_user_for_web_search(rag_answer: str) -> bool:
         else:
             print("Please enter 'yes' or 'no'.")
 
+
 def run_web_search_workflow(
     query: str,
     rag_answer: str,
-    ollama_model: str = "llama3.2",
+    groq_model: str = "llama-3.1-8b-instant",
 ) -> Optional[dict]:
     """
     Full Workflow 2:
@@ -102,14 +107,6 @@ def run_web_search_workflow(
         2. Prompt user for yes/no.
         3. If yes  → search web + synthesize → return result dict.
         4. If no   → return None (pipeline stops here).
-
-    Args:
-        query         : The original user question.
-        rag_answer    : The answer already retrieved from the PDF via RAG.
-        ollama_model  : Name of the local Ollama model to use for synthesis.
-
-    Returns:
-        dict with web_results / synthesized / query  OR  None if user said no.
     """
     wants_web = prompt_user_for_web_search(rag_answer)
 
@@ -117,7 +114,7 @@ def run_web_search_workflow(
         print("\n[WebSearch] Stopping here. Using only the paper answer.")
         return None
 
-    llm = get_ollama_llm(model=ollama_model)
+    llm = get_groq_llm(model=groq_model)
     result = search_and_synthesize(query, rag_answer, llm)
 
     print("\n" + "=" * 70)
@@ -139,7 +136,6 @@ if __name__ == "__main__":
     result = run_web_search_workflow(
         query=sample_query,
         rag_answer=sample_rag_answer,
-        ollama_model="llama3.2",
     )
 
     if result:

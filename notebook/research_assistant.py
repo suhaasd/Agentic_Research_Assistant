@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 import chromadb
 from sentence_transformers import SentenceTransformer
-from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
 from typing import List, Dict, Any, Optional
 
 from workflow_web_search import run_web_search_workflow
@@ -12,8 +12,8 @@ from workflow_quality_reviewer import review_both_answers, review_answer_quality
 
 load_dotenv(override=True)
 
-OLLAMA_MODEL       = "llama3.1"          
-EMBEDDING_MODEL    = "all-MiniLM-L6-v2"  
+GROQ_MODEL         = "llama-3.1-8b-instant"
+EMBEDDING_MODEL    = "all-MiniLM-L6-v2"
 VECTOR_STORE_PATH  = "../data/vector_store"
 COLLECTION_NAME    = "pdf_documents"
 TOP_K              = 6
@@ -60,7 +60,7 @@ class ResearchRetriever:
 def rag_with_ollama(
     query: str,
     retriever: ResearchRetriever,
-    llm: ChatOllama,
+    llm: ChatGroq,
     top_k: int = TOP_K,
     min_score: float = MIN_SCORE,
 ) -> Dict[str, Any]:
@@ -118,12 +118,12 @@ def main():
     print("  RESEARCH ASSISTANT  –  PDF RAG + Web Search + Quality Review")
     print("=" * 70)
     print(f"  Embedding model : {EMBEDDING_MODEL}")
-    print(f"  Ollama model    : {OLLAMA_MODEL}")
+    print(f"  Groq model      : {GROQ_MODEL}")
     print(f"  Vector store    : {VECTOR_STORE_PATH}")
     print("=" * 70)
 
     retriever = ResearchRetriever()
-    llm = ChatOllama(model=OLLAMA_MODEL, temperature=0.1)
+    llm = ChatGroq(model=GROQ_MODEL, temperature=0.1)
 
     while True:
         print("\n" + "-" * 70)
@@ -146,7 +146,7 @@ def main():
         web_result = run_web_search_workflow(
             query=query,
             rag_answer=paper_answer,
-            ollama_model=OLLAMA_MODEL,
+            groq_model=GROQ_MODEL,
         )
         web_answer = web_result["synthesized"] if web_result else None
 
@@ -155,7 +155,7 @@ def main():
             question=query,
             paper_answer=paper_answer,
             web_answer=web_answer,
-            ollama_model=OLLAMA_MODEL,
+            groq_model=GROQ_MODEL,
         )
 
         print("\n" + "=" * 70)
