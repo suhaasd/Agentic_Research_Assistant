@@ -146,6 +146,7 @@ python api.py
 Open your browser at **http://localhost:8000**
 
 The UI lets you:
+- **Add Papers** — fetch a PDF from any URL or ingest an entire Google Drive folder directly from the UI
 - Ask a question → get the paper answer with confidence score and sources
 - Click **Enhance with Web Search** → get a synthesized paper + web answer
 - View side-by-side quality review scores for both answers
@@ -221,31 +222,6 @@ Runs the RAG pipeline against the PDF vector store.
 ### `POST /api/enhance`
 Runs web search + LLM synthesis + quality review for both answers.
 
-### `POST /api/ingest`
-Downloads all PDFs from a public Google Drive folder, chunks and embeds them, and adds them to the vector store. The retriever hot-reloads so new papers are immediately queryable.
-
-**Request**
-```json
-{ "folder_id": "your_google_drive_folder_id" }
-```
-
-The `folder_id` is the last segment of the folder URL:
-`https://drive.google.com/drive/folders/`**`THIS_PART`**
-
-The folder must be set to **"Anyone with the link can view"**.
-
-**Response**
-```json
-{
-  "ingested": 4,
-  "total_chunks": 312,
-  "files": [
-    { "name": "paper1.pdf", "chunks": 89 },
-    { "name": "paper2.pdf", "chunks": 74 }
-  ]
-}
-```
-
 **Request**
 ```json
 {
@@ -273,6 +249,51 @@ The folder must be set to **"Anyone with the link can view"**.
 }
 ```
 
+### `POST /api/ingest`
+Downloads all PDFs from a public Google Drive folder, chunks and embeds them into the vector store. Skips files already ingested. The retriever hot-reloads so new papers are immediately queryable.
+
+**Request**
+```json
+{ "folder_id": "your_google_drive_folder_id" }
+```
+
+The `folder_id` is the last segment of the folder URL:
+`https://drive.google.com/drive/folders/`**`THIS_PART`**
+
+The folder must be set to **"Anyone with the link can view"**.
+
+**Response**
+```json
+{
+  "ingested": 4,
+  "total_chunks": 312,
+  "files": [
+    { "name": "paper1.pdf", "chunks": 89, "skipped": false },
+    { "name": "paper2.pdf", "chunks": 0,  "skipped": true }
+  ]
+}
+```
+
+### `POST /api/fetch`
+Downloads a single PDF from an arXiv URL, DOI, or direct PDF link, chunks and embeds it. Skips if already ingested.
+
+**Request**
+```json
+{ "url": "https://arxiv.org/abs/1706.03762" }
+```
+
+arXiv abstract URLs are resolved to PDF automatically. No manual `/pdf/` URL needed.
+
+**Response**
+```json
+{
+  "source": "https://arxiv.org/abs/1706.03762",
+  "filename": "1706.03762.pdf",
+  "chunks": 124,
+  "skipped": false
+}
+```
+
 ---
 
 ## Research Papers Included
@@ -285,9 +306,34 @@ The vector store is pre-built from the following papers:
 | `code generation using LLMs.pdf` | Survey of code generation techniques using large language models |
 | `Systematic mapping study of template based code generation.pdf` | Systematic review of template-based code generation approaches |
 
-To add your own PDFs you have two options:
+To add your own PDFs you have three options:
 - **Local** — place them in `data/pdf/` and re-run the ingestion notebook (`notebook/pdf_loader.ipynb`)
 - **Google Drive** — share a folder publicly and call `POST /api/ingest` with the folder ID
+- **URL** — call `POST /api/fetch` with any arXiv URL, DOI, or direct PDF link
+
+All three methods use the same chunking and embedding pipeline and land in the same vector store. Already-ingested files are skipped automatically.
+
+---
+
+## MCP Server
+
+`mcp_server.py` exposes the ingestion pipeline as MCP tools, making them callable by any MCP-compatible LLM agent (Claude Desktop, Claude Code, etc.).
+
+```bash
+python mcp_server.py
+```
+
+**Available tools:**
+
+| Tool | Description |
+|---|---|
+| `ingest_papers(folder_id)` | Ingest all PDFs from a public Google Drive folder |
+| `fetch_paper(url)` | Fetch and ingest a single PDF from arXiv, DOI, or direct URL |
+
+To register with Claude Code:
+```bash
+claude mcp add research-assistant python mcp_server.py
+```
 
 ---
 
