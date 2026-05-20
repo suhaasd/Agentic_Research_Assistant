@@ -11,16 +11,16 @@ from pydantic import BaseModel
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "notebook"))
 
-from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
 from research_assistant import ResearchRetriever, rag_with_ollama
 from workflow_quality_reviewer import review_both_answers
-from workflow_web_search import get_ollama_llm, search_and_synthesize
+from workflow_web_search import get_groq_llm, search_and_synthesize
 
-OLLAMA_MODEL      = "llama3.1"
+GROQ_MODEL        = "llama-3.1-8b-instant"
 VECTOR_STORE_PATH = os.path.join(os.path.dirname(__file__), "data", "vector_store")
 
 _retriever: Optional[ResearchRetriever] = None
-_llm: Optional[ChatOllama] = None
+_llm: Optional[ChatGroq] = None
 
 
 @asynccontextmanager
@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
     global _retriever, _llm
     print("[Startup] Loading retriever and LLM...")
     _retriever = ResearchRetriever(persist_directory=VECTOR_STORE_PATH)
-    _llm = ChatOllama(model=OLLAMA_MODEL, temperature=0.1)
+    _llm = ChatGroq(model=GROQ_MODEL, temperature=0.1)
     print("[Startup] Ready.")
     yield
     print("[Shutdown] Cleaning up.")
@@ -50,9 +50,12 @@ class EnhanceRequest(BaseModel):
     query: str
     rag_answer: str
 
+class IngestRequest(BaseModel):
+    folder_id: str
+
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "model": OLLAMA_MODEL}
+    return {"status": "ok", "model": GROQ_MODEL}
 
 
 @app.post("/api/ask")
@@ -77,14 +80,14 @@ def enhance(req: EnhanceRequest):
     if not req.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
     try:
-        llm = get_ollama_llm(model=OLLAMA_MODEL)
+        llm = get_groq_llm(model=GROQ_MODEL)
         web_result = search_and_synthesize(req.query, req.rag_answer, llm)
 
         review = review_both_answers(
             question=req.query,
             paper_answer=req.rag_answer,
             web_answer=web_result["synthesized"],
-            ollama_model=OLLAMA_MODEL,
+            groq_model=GROQ_MODEL,
         )
 
         paper_rv = review["paper_review"]
@@ -115,6 +118,21 @@ def enhance(req: EnhanceRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ingest")
+def ingest(req: IngestRequest):
+    """Download PDFs from a Google Drive folder, chunk, embed, and store them."""
+    if not req.folder_id.strip():
+        raise HTTPException(status_code=400, detail="folder_id cannot be empty.")
+    try:
+        from drive_ingestion import ingest_folder
+        result = ingest_folder(req.folder_id)
+        global _retriever
+        _retriever = ResearchRetriever(persist_directory=VECTOR_STORE_PATH)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "frontend")
 if os.path.isdir(FRONTEND_DIR):

@@ -3,7 +3,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Optional
 
-from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
 
 @dataclass
 class QualityReview:
@@ -129,23 +129,23 @@ def review_answer_quality(
     question: str,
     answer: str,
     source_type: str = "RAG (paper)",
-    ollama_model: str = "llama3.2",
+    groq_model: str = "llama-3.1-8b-instant",
 ) -> QualityReview:
     """
     Run the quality review for a single answer.
 
     Args:
-        question     : The original research question.
-        answer       : The answer to evaluate (from RAG or web synthesis).
-        source_type  : Human-readable label e.g. "RAG (paper)" or "Web synthesis".
-        ollama_model : Local Ollama model to use.
+        question   : The original research question.
+        answer     : The answer to evaluate (from RAG or web synthesis).
+        source_type: Human-readable label e.g. "RAG (paper)" or "Web synthesis".
+        groq_model : Groq model to use.
 
     Returns:
         QualityReview dataclass instance.
     """
-    print(f"\n[Reviewer] Running quality review using Ollama ({ollama_model}) ...")
+    print(f"\n[Reviewer] Running quality review using Groq ({groq_model}) ...")
 
-    llm = ChatOllama(model=ollama_model, temperature=0)
+    llm = ChatGroq(model=groq_model, temperature=0)
 
     prompt = REVIEW_PROMPT_TEMPLATE.format(
         question=question,
@@ -164,7 +164,7 @@ def review_both_answers(
     question: str,
     paper_answer: str,
     web_answer: Optional[str] = None,
-    ollama_model: str = "llama3.1",
+    groq_model: str = "llama-3.1-8b-instant",
 ) -> dict:
     """
     Review the paper answer and (optionally) the web-synthesized answer.
@@ -181,7 +181,7 @@ def review_both_answers(
         question=question,
         answer=paper_answer,
         source_type="RAG (research paper)",
-        ollama_model=ollama_model,
+        groq_model=groq_model,
     )
 
     web_review = None
@@ -190,8 +190,8 @@ def review_both_answers(
         web_review = review_answer_quality(
             question=question,
             answer=web_answer,
-            source_type="Web synthesis (DuckDuckGo + Ollama)",
-            ollama_model=ollama_model,
+            source_type="Web synthesis (Tavily + Groq)",
+            groq_model=groq_model,
         )
 
     if web_review is None:
@@ -236,7 +236,7 @@ if __name__ == "__main__":
         question=sample_question,
         paper_answer=sample_paper_answer,
         web_answer=sample_web_answer,
-        ollama_model="llama3.2",
+        groq_model="llama-3.1-8b-instant",
     )
 
     print("\nFinal Recommendation:", results["recommendation"])
