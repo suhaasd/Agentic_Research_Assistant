@@ -4,15 +4,15 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "notebook"))
 
 from fastmcp import FastMCP
-from drive_ingestion import ingest_folder, fetch_and_ingest
+from drive_ingestion import ingest_from_drive, fetch_and_ingest
 
 mcp = FastMCP("Research Paper Ingester")
 
 
 @mcp.tool()
-def ingest_papers(folder_id: str) -> dict:
-    """Download all PDFs from a public Google Drive folder, chunk them, embed them, and store in the vector database."""
-    return ingest_folder(folder_id)
+def ingest_papers() -> dict:
+    """Scan the authenticated Google Drive for PDFs, chunk them, embed them, and store in the vector database. Skips already-ingested files."""
+    return ingest_from_drive()
 
 
 @mcp.tool()

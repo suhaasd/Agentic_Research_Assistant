@@ -56,13 +56,15 @@ Answer to Evaluate:
 
 Source Type: {source_type}
 
-Evaluate the answer on the following three dimensions. For each, give an integer score from 1 to 10 and a brief justification.
+CRITICAL RULE: If the answer states it cannot find information, says the topic is not in the provided context, or otherwise fails to actually answer the question — it must receive a score of 1 or 2 for both Relevance and Completeness, regardless of how clearly it admits this. An honest "I don't know" is still a failed answer.
 
-1. Relevance (1-10): Does the answer directly address the question asked? A score of 10 means the answer is perfectly on-topic with no irrelevant content.
+Evaluate the answer on the following three dimensions. For each, give an integer score from 1 to 10.
 
-2. Completeness (1-10): Does the answer cover the key aspects of the question thoroughly? A score of 10 means nothing important is missing.
+1. Relevance (1-10): Does the answer directly address the question with substantive information? Score 1-2 if the answer contains no useful information about the topic.
 
-3. Clarity (1-10): Is the answer well-structured, logically organized, and easy to understand for a graduate-level reader? A score of 10 means the writing is exemplary.
+2. Completeness (1-10): Does the answer cover the key aspects of the question thoroughly? Score 1-2 if the answer provides no actual content.
+
+3. Clarity (1-10): Is the answer well-structured, logically organized, and easy to understand? Score this based on whatever content is present.
 
 Then provide:
 - reviewer_notes: A 2-3 sentence overall assessment of the answer quality.

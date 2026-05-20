@@ -6,6 +6,8 @@ dist/
 wheels/
 *.egg-info
 .env
+credentials.json
+token.json
 data/vector_store/
 
 # Virtual environments

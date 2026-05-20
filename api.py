@@ -15,8 +15,9 @@ from langchain_groq import ChatGroq
 from research_assistant import ResearchRetriever, rag_with_ollama
 from workflow_quality_reviewer import review_both_answers
 from workflow_web_search import get_groq_llm, search_and_synthesize
+from research_pipeline import run_research_pipeline
 
-GROQ_MODEL        = "llama-3.1-8b-instant"
+GROQ_MODEL        = "llama-3.3-70b-versatile"
 VECTOR_STORE_PATH = os.path.join(os.path.dirname(__file__), "data", "vector_store")
 
 _retriever: Optional[ResearchRetriever] = None
@@ -43,6 +44,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class ResearchRequest(BaseModel):
+    query: str
+
 class AskRequest(BaseModel):
     query: str
 
@@ -50,15 +54,23 @@ class EnhanceRequest(BaseModel):
     query: str
     rag_answer: str
 
-class IngestRequest(BaseModel):
-    folder_id: str
-
 class FetchRequest(BaseModel):
     url: str
 
 @app.get("/api/health")
 def health():
     return {"status": "ok", "model": GROQ_MODEL}
+
+
+@app.post("/api/research")
+def research(req: ResearchRequest):
+    """Unified pipeline: local search → Drive → arXiv → paper answer → web search → quality review."""
+    if not req.query.strip():
+        raise HTTPException(status_code=400, detail="query cannot be empty.")
+    try:
+        return run_research_pipeline(req.query, _retriever, _llm)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/ask")
@@ -138,13 +150,11 @@ def fetch(req: FetchRequest):
 
 
 @app.post("/api/ingest")
-def ingest(req: IngestRequest):
-    """Download PDFs from a Google Drive folder, chunk, embed, and store them."""
-    if not req.folder_id.strip():
-        raise HTTPException(status_code=400, detail="folder_id cannot be empty.")
+def ingest():
+    """Scan the authenticated Google Drive for PDFs, chunk, embed, and store them."""
     try:
-        from drive_ingestion import ingest_folder
-        result = ingest_folder(req.folder_id)
+        from drive_ingestion import ingest_from_drive
+        result = ingest_from_drive()
         global _retriever
         _retriever = ResearchRetriever(persist_directory=VECTOR_STORE_PATH)
         return result
