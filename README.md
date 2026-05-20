@@ -19,21 +19,21 @@ An intelligent research tool that answers questions by automatically searching l
                     │  ChromaDB Search│  local vector store
                     └────────┬────────┘
                              │
-              ┌──────────────▼──────────────┐
+              ┌──────────────▼───────────────┐
               │  Relevant? (score ≥ 0.6)     │
               └──────┬───────────────┬───────┘
                    Yes               No
                     │                │
-                    │      ┌─────────▼─────────┐
+                    │      ┌─────────▼──────────┐
                     │      │  Sync Google Drive │  OAuth — scans entire Drive
                     │      └─────────┬──────────┘
                     │                │
-                    │      ┌─────────▼─────────┐
+                    │      ┌─────────▼──────────┐
                     │      │  Still not enough? │
                     │      └──────┬─────────────┘
                     │           Yes
                     │             │
-                    │      ┌──────▼──────────────┐
+                    │      ┌──────▼───────────────┐
                     │      │  Fetch from arXiv    │  auto-search + ingest 5 papers
                     │      └──────┬───────────────┘
                     │             │
@@ -52,7 +52,7 @@ An intelligent research tool that answers questions by automatically searching l
                   └────────┬────────┘
                            │
                   ┌────────▼────────┐
-                  │ Quality Reviewer │  LLM-as-judge scores both answers
+                  │Quality Reviewer │  LLM-as-judge scores both answers
                   └────────┬────────┘
                            │
                   ┌────────▼────────┐
