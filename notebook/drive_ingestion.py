@@ -45,6 +45,11 @@ def _chunk_pdf(pdf_path: str, source_name: str) -> list[dict]:
     return chunks
 
 
+def _already_ingested(collection, source_name: str) -> bool:
+    results = collection.get(where={"source_file": source_name}, limit=1)
+    return len(results["ids"]) > 0
+
+
 def _store_chunks(chunks: list[dict], collection, model) -> int:
     if not chunks:
         return 0
@@ -88,7 +93,7 @@ def _download_pdf_from_url(url: str) -> tuple[bytes, str]:
 def ingest_folder(folder_id: str) -> dict:
     client = chromadb.PersistentClient(path=VECTOR_STORE_PATH)
     collection = client.get_or_create_collection(COLLECTION_NAME)
-    model = SentenceTransformer(EMBEDDING_MODEL, local_files_only=True)
+    model = SentenceTransformer(EMBEDDING_MODEL)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         print(f"  Downloading from Google Drive folder: {folder_id}")
@@ -100,11 +105,15 @@ def ingest_folder(folder_id: str) -> dict:
 
         summary = []
         for pdf_path in pdf_files:
+            if _already_ingested(collection, pdf_path.name):
+                print(f"  Skipped {pdf_path.name} — already in vector store")
+                summary.append({"name": pdf_path.name, "chunks": 0, "skipped": True})
+                continue
             print(f"  Processing: {pdf_path.name}")
             try:
                 chunks = _chunk_pdf(str(pdf_path), pdf_path.name)
                 count = _store_chunks(chunks, collection, model)
-                summary.append({"name": pdf_path.name, "chunks": count})
+                summary.append({"name": pdf_path.name, "chunks": count, "skipped": False})
                 print(f"  Stored {count} chunks for {pdf_path.name}")
             except Exception as e:
                 print(f"  Failed {pdf_path.name}: {e}")
@@ -120,10 +129,14 @@ def ingest_folder(folder_id: str) -> dict:
 def fetch_and_ingest(url: str) -> dict:
     client = chromadb.PersistentClient(path=VECTOR_STORE_PATH)
     collection = client.get_or_create_collection(COLLECTION_NAME)
-    model = SentenceTransformer(EMBEDDING_MODEL, local_files_only=True)
+    model = SentenceTransformer(EMBEDDING_MODEL)
 
     print(f"  Fetching PDF from: {url}")
     pdf_bytes, filename = _download_pdf_from_url(url)
+
+    if _already_ingested(collection, filename):
+        print(f"  Skipped {filename} — already in vector store")
+        return {"source": url, "filename": filename, "chunks": 0, "skipped": True}
 
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
         tmp.write(pdf_bytes)
