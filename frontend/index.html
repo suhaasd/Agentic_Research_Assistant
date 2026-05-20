@@ -413,6 +413,82 @@
     }
 
     .hidden { display: none !important; }
+
+    .ingest-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 22px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+
+    .ingest-card-header {
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ingest-row { margin-bottom: 12px; }
+    .ingest-row:last-child { margin-bottom: 0; }
+
+    .ingest-row label {
+      display: block;
+      font-size: .75rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .ingest-input-row { display: flex; gap: 8px; }
+
+    .ingest-input-row input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: .88rem;
+      font-family: inherit;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .ingest-input-row input:focus { border-color: var(--accent2); }
+    .ingest-input-row input::placeholder { color: var(--muted); }
+
+    .btn-ingest {
+      background: linear-gradient(135deg, var(--accent2), #00a88a);
+      color: #fff;
+      white-space: nowrap;
+    }
+
+    .ingest-divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+    .ingest-feedback {
+      margin-top: 8px;
+      font-size: .78rem;
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+
+    .ingest-feedback.success {
+      background: rgba(0,201,167,.1);
+      border: 1px solid rgba(0,201,167,.3);
+      color: var(--pass);
+    }
+
+    .ingest-feedback.error {
+      background: rgba(255,95,109,.1);
+      border: 1px solid rgba(255,95,109,.3);
+      color: var(--danger);
+    }
   </style>
 </head>
 <body>
@@ -430,6 +506,36 @@
 </header>
 
 <main>
+
+  <div class="ingest-card">
+    <div class="ingest-card-header">+ Add Papers to Knowledge Base</div>
+
+    <div class="ingest-row">
+      <label>From URL — arXiv, DOI, or direct PDF link</label>
+      <div class="ingest-input-row">
+        <input type="text" id="fetch-url-input" placeholder="https://arxiv.org/abs/1706.03762" />
+        <button class="btn btn-ingest" id="fetch-btn">
+          <span id="fetch-spinner" class="spinner hidden"></span>
+          Fetch Paper
+        </button>
+      </div>
+      <div class="ingest-feedback hidden" id="fetch-feedback"></div>
+    </div>
+
+    <div class="ingest-divider"></div>
+
+    <div class="ingest-row">
+      <label>From Google Drive — public folder ID</label>
+      <div class="ingest-input-row">
+        <input type="text" id="drive-folder-input" placeholder="Google Drive folder ID" />
+        <button class="btn btn-ingest" id="drive-btn">
+          <span id="drive-spinner" class="spinner hidden"></span>
+          Ingest Folder
+        </button>
+      </div>
+      <div class="ingest-feedback hidden" id="drive-feedback"></div>
+    </div>
+  </div>
 
   <div class="query-card">
     <label for="query-input">Your Research Question</label>
@@ -543,7 +649,78 @@
 </main>
 
 <script>
-  const API = '';  
+  const API = '';
+
+  const fetchUrlInput  = document.getElementById('fetch-url-input');
+  const fetchBtn       = document.getElementById('fetch-btn');
+  const fetchSpinner   = document.getElementById('fetch-spinner');
+  const fetchFeedback  = document.getElementById('fetch-feedback');
+
+  const driveFolderInput = document.getElementById('drive-folder-input');
+  const driveBtn         = document.getElementById('drive-btn');
+  const driveSpinner     = document.getElementById('drive-spinner');
+  const driveFeedback    = document.getElementById('drive-feedback');
+
+  function showFeedback(el, type, msg) {
+    el.textContent = msg;
+    el.className = `ingest-feedback ${type}`;
+    el.classList.remove('hidden');
+  }
+
+  fetchBtn.addEventListener('click', async () => {
+    const url = fetchUrlInput.value.trim();
+    if (!url) { fetchUrlInput.focus(); return; }
+
+    fetchBtn.disabled = true;
+    fetchSpinner.classList.remove('hidden');
+    fetchFeedback.classList.add('hidden');
+
+    try {
+      const res = await fetch(`${API}/api/fetch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || res.statusText);
+      showFeedback(fetchFeedback, 'success', `Ingested "${data.filename}" — ${data.chunks} chunks added`);
+      fetchUrlInput.value = '';
+    } catch (e) {
+      showFeedback(fetchFeedback, 'error', `Failed: ${e.message}`);
+    } finally {
+      fetchBtn.disabled = false;
+      fetchSpinner.classList.add('hidden');
+    }
+  });
+
+  driveBtn.addEventListener('click', async () => {
+    const folder_id = driveFolderInput.value.trim();
+    if (!folder_id) { driveFolderInput.focus(); return; }
+
+    driveBtn.disabled = true;
+    driveSpinner.classList.remove('hidden');
+    driveFeedback.classList.add('hidden');
+
+    try {
+      const res = await fetch(`${API}/api/ingest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder_id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || res.statusText);
+      showFeedback(driveFeedback, 'success',
+        `Ingested ${data.ingested} file${data.ingested !== 1 ? 's' : ''} — ${data.total_chunks} chunks added`);
+      driveFolderInput.value = '';
+    } catch (e) {
+      showFeedback(driveFeedback, 'error', `Failed: ${e.message}`);
+    } finally {
+      driveBtn.disabled = false;
+      driveSpinner.classList.add('hidden');
+    }
+  });
+
+
 
   const queryInput    = document.getElementById('query-input');
   const askBtn        = document.getElementById('ask-btn');

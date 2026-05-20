@@ -53,6 +53,9 @@ class EnhanceRequest(BaseModel):
 class IngestRequest(BaseModel):
     folder_id: str
 
+class FetchRequest(BaseModel):
+    url: str
+
 @app.get("/api/health")
 def health():
     return {"status": "ok", "model": GROQ_MODEL}
@@ -118,6 +121,21 @@ def enhance(req: EnhanceRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/fetch")
+def fetch(req: FetchRequest):
+    """Fetch a single PDF from an arXiv URL, DOI, or direct PDF link and ingest it."""
+    if not req.url.strip():
+        raise HTTPException(status_code=400, detail="url cannot be empty.")
+    try:
+        from drive_ingestion import fetch_and_ingest
+        result = fetch_and_ingest(req.url)
+        global _retriever
+        _retriever = ResearchRetriever(persist_directory=VECTOR_STORE_PATH)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/api/ingest")
 def ingest(req: IngestRequest):
