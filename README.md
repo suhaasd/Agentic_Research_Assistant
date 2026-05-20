@@ -7,6 +7,8 @@ An intelligent research tool that answers questions from your PDF papers using *
 ## Features
 
 - **PDF RAG Pipeline** — semantic search over your research papers using ChromaDB and sentence embeddings
+- **Google Drive Ingestion** — pull PDFs directly from a public Google Drive folder, chunk and embed them into the same vector store as local papers
+- **MCP Server** — exposes ingestion as an MCP tool so any LLM agent can trigger it
 - **Web Search Integration** — augments paper answers with DuckDuckGo search results, synthesized by the local LLM
 - **LLM Quality Reviewer** — scores every answer on Relevance, Completeness, and Clarity (1–10), gives a verdict (PASS / NEEDS IMPROVEMENT / FAIL), and recommends the best answer
 - **Web UI** — clean dark-themed single-page app built on FastAPI + JS
@@ -61,6 +63,8 @@ An intelligent research tool that answers questions from your PDF papers using *
 | Vector Store | ChromaDB (persistent) |
 | LLM Framework | LangChain |
 | Web Search | DuckDuckGo (via `langchain-community`) |
+| Drive Ingestion | `gdown` (public Google Drive) |
+| MCP Server | FastMCP |
 | API Server | FastAPI + Uvicorn |
 | Frontend | Vanilla HTML / CSS / JS |
 | Python | 3.13+ |
@@ -71,24 +75,26 @@ An intelligent research tool that answers questions from your PDF papers using *
 
 ```
 Research_Assistant/
-├── api.py                        # FastAPI server — wraps all pipelines as REST endpoints
-├── main.py                       # Simple entry point
-├── requirements.txt              # Python dependencies
-├── pyproject.toml                # Project metadata
+├── api.py                            # FastAPI server — wraps all pipelines as REST endpoints
+├── mcp_server.py                     # FastMCP server — exposes ingestion as an MCP tool
+├── main.py                           # Simple entry point
+├── requirements.txt                  # Python dependencies
+├── pyproject.toml                    # Project metadata
 │
 ├── notebook/
-│   ├── research_assistant.py     # Core RAG pipeline + CLI entry point
-│   ├── workflow_web_search.py    # DuckDuckGo search + LLM synthesis
+│   ├── research_assistant.py         # Core RAG pipeline + CLI entry point
+│   ├── drive_ingestion.py            # Google Drive download + chunking + embedding pipeline
+│   ├── workflow_web_search.py        # DuckDuckGo search + LLM synthesis
 │   └── workflow_quality_reviewer.py  # LLM-as-judge quality scoring
 │
 ├── frontend/
-│   └── index.html                # Single-page web UI
+│   └── index.html                    # Single-page web UI
 │
 └── data/
-    ├── pdf/                      # Source research papers (PDFs)
-    ├── vector_store/             # Pre-built ChromaDB embeddings
-    ├── text_files/               # Raw extracted text
-    └── json/                     # Structured data
+    ├── pdf/                          # Local source papers (PDFs)
+    ├── vector_store/                 # Persistent ChromaDB embeddings
+    ├── text_files/                   # Raw extracted text
+    └── json/                         # Structured data
 ```
 
 ---
@@ -215,6 +221,31 @@ Runs the RAG pipeline against the PDF vector store.
 ### `POST /api/enhance`
 Runs web search + LLM synthesis + quality review for both answers.
 
+### `POST /api/ingest`
+Downloads all PDFs from a public Google Drive folder, chunks and embeds them, and adds them to the vector store. The retriever hot-reloads so new papers are immediately queryable.
+
+**Request**
+```json
+{ "folder_id": "your_google_drive_folder_id" }
+```
+
+The `folder_id` is the last segment of the folder URL:
+`https://drive.google.com/drive/folders/`**`THIS_PART`**
+
+The folder must be set to **"Anyone with the link can view"**.
+
+**Response**
+```json
+{
+  "ingested": 4,
+  "total_chunks": 312,
+  "files": [
+    { "name": "paper1.pdf", "chunks": 89 },
+    { "name": "paper2.pdf", "chunks": 74 }
+  ]
+}
+```
+
 **Request**
 ```json
 {
@@ -254,7 +285,9 @@ The vector store is pre-built from the following papers:
 | `code generation using LLMs.pdf` | Survey of code generation techniques using large language models |
 | `Systematic mapping study of template based code generation.pdf` | Systematic review of template-based code generation approaches |
 
-To add your own PDFs, place them in `data/pdf/` and re-run the ingestion notebook (`notebook/pdf_loader.ipynb`).
+To add your own PDFs you have two options:
+- **Local** — place them in `data/pdf/` and re-run the ingestion notebook (`notebook/pdf_loader.ipynb`)
+- **Google Drive** — share a folder publicly and call `POST /api/ingest` with the folder ID
 
 ---
 
@@ -290,6 +323,7 @@ Every answer is evaluated on three dimensions by the local LLM:
 | `local-llm` | Switched from Groq API to local Ollama |
 | `langgraph` | Agentic AI workflow with LangGraph |
 | `frontend` | FastAPI REST API and web UI |
+| `mcp` | Google Drive ingestion + MCP server |
 
 ---
 
